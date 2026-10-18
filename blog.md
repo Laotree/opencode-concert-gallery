@@ -91,16 +91,10 @@ OpenCode 是一个开源 AI 编码代理，有终端（TUI）、桌面端和网�
 ```sh
 # 官方脚本（最快，自动选平台二进制）
 curl -fsSL https://opencode.ai/v2/install | bash
-
-# 或者 Homebrew
-brew install anomalyco/tap/opencode-v2
-
-# 或者任意 Node 包管理器
-npm  install -g @opencode/cli
-bun  install -g --trust @opencode/cli
-pnpm add -g --allow-build=@opencode/cli @opencode/cli
-yarn global add @opencode/cli
 ```
+
+其余方式：Homebrew `brew install anomalyco/tap/opencode-v2`；Node 包管理器
+`npm install -g @opencode/cli`（bun / pnpm / yarn 换成对应的包管理器命令即可）。
 
 > ⚠️ 注意版本别装错：包管理器上同时存在 V1 和 V2。
 > `brew` 的 V2 公式名是 `opencode-v2`，npm 包名是 `@opencode/cli`。
@@ -140,15 +134,8 @@ opencode
 ```
 
 进入 TUI 后按 `/connect` 选一个 provider 登录（OpenCode 内置支持很多家模型；也可以用
-[OpenCode Console](https://opencode.ai/v2/docs/console/) 一站式接入）。想换默认模型，写进
-`~/.config/opencode/opencode.json`：
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "model": "<provider>/<model-id>"
-}
-```
+[OpenCode Console](https://opencode.ai/v2/docs/console/) 一站式接入）。想固定默认模型，
+就在 `~/.config/opencode/opencode.json` 里加一行 `"model"` —— 写法见 §2.7。
 
 ---
 
@@ -205,46 +192,19 @@ concert_photo_gallery/
 原目录名 `concert_photo_gallery` 含下划线，V2 目前不强制校验，能跑；但既然要短、要规范，
 直接叫 `pop` 就两头都占了。
 
-### 2.3 三步装好
+### 2.3 装好它
+
+技能本体就在本仓库的 `skill/pop/`（`SKILL.md` + `scripts/build_gallery.py`），装进项目里只要两条命令：
 
 ```sh
-# 1) 建目录（技能 ID 就来自这个目录名）
 mkdir -p .opencode/skills/pop
-
-# 2) 把正文挪进去
-mv SKILL.md .opencode/skills/pop/SKILL.md
-
-# skill.yaml 可以原地留着，OpenCode 不读它，不影响任何事
+cp -r skill/pop/. .opencode/skills/pop/
 ```
 
-```sh
-# 3) 给 SKILL.md 顶部补上 frontmatter（下一步会给完整版）
-```
+或者直接跑文首那条一键安装命令，它做的正是这件事。`skill.yaml` 可以原地留着，OpenCode 不读它。
 
-最简可以只有两行：
-
-```markdown
----
-name: pop
-description: Find an idol's concert photos from the web and build a local static photo gallery site.
----
-
-（下面接原来的正文）
-```
-
-**不想搬家？** 也可以原地保留这个仓库，用 `skills` 配置数组把目录挂进去——这是上面优先级表的第 6 档，
-`skills` 数组是**累加**而不是覆盖，多个配置文件里的条目会合并：
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "skills": [
-    "~/concert-photo-gallery/.opencode/skills",   // 相对路径以「当前工作目录」为基准，不是配置文件所在目录
-    "/opt/shared-skills",                        // 绝对路径原样使用
-    "https://example.com/opencode/skills/"        // 也可以挂一个 HTTP 目录（catalog）
-  ]
-}
-```
+**不想搬家？** 也可以原地保留这个仓库，用 `skills` 配置数组把目录挂进去——这是上面优先级表的第 6 档
+（写法见 §2.7）。
 
 ### 2.4 验证技能被发现了
 
@@ -259,19 +219,8 @@ description: Find an idol's concert photos from the web and build a local static
 ### 2.5 权限（可选，但建议知道）
 
 技能默认是否可用受 `skill` 权限约束，规则按顺序匹配、**最后一条命中的生效**：
-
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "permissions": [
-    { "action": "skill", "resource": "*", "effect": "allow" },
-    { "action": "skill", "resource": "internal-*", "effect": "deny" }
-  ]
-}
-```
-
 `allow` 直接加载；`ask` 加载前问你；`deny` 对模型隐藏且拒绝加载。想只对某个 agent 生效，
-就放到 `agents.<id>.permissions` 下。
+就放到 `agents.<id>.permissions` 下；写法见 §2.7。
 
 > 小技巧：如果某个技能你只想手动 `@` 调用、不想让模型自己乱触发，在它的 frontmatter 里写
 > `metadata: { opencode/autoinvoke: false }`。它仍会被注册，只是不再出现在模型的可用列表里。
@@ -284,6 +233,24 @@ description: Find an idol's concert photos from the web and build a local static
 4. 检查 `opencode/autoinvoke` 和当前 agent 的 `skill` 权限；
 5. 有没有别的高优先级目录定义了同名 ID 把它覆盖掉；
 6. 忘了重开会话——技能列表是在每一步模型调用时生成的。
+
+### 2.7 用得到的配置项
+
+上面三处配置都写在 `opencode.json(c)` 里，可以合并成一个文件：
+
+```jsonc
+// ~/.config/opencode/opencode.json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "<provider>/<model-id>",                         // 固定默认模型（§1.3）
+  "skills": [ "~/concert-photo-gallery/.opencode/skills" ], // 追加的技能根目录（§2.3），累加不覆盖
+  "permissions": [                                          // 按顺序匹配，最后一条生效（§2.5）
+    { "action": "skill", "resource": "*", "effect": "allow" }
+  ]
+}
+```
+
+放在项目根目录的 `.opencode/opencode.json` 只影响当前项目。
 
 ---
 
@@ -378,12 +345,13 @@ curl -fsSL https://laotree.github.io/opencode-concert-gallery/skill/pop/SKILL.md
 完整脚本约 620 行、零依赖，就在技能自带的 `scripts/` 里：
 [`skill/pop/scripts/build_gallery.py`](https://github.com/Laotree/opencode-concert-gallery/blob/main/skill/pop/scripts/build_gallery.py)
 （[直接下载](https://laotree.github.io/opencode-concert-gallery/skill/pop/scripts/build_gallery.py)）。
-其中真正是「逻辑」的部分只有几行，其余全是 HTML/CSS/JS 模板：
+用法：
 
-```python
-def natural_key(name):
-    """photo-2.jpg 排在 photo-10.jpg 前面。"""
-    return [int(p) if p.isdigit() else p.lower() for p in re.split(r"(\d+)", name)]
+```sh
+python3 .opencode/skills/pop/scripts/build_gallery.py \
+  --photos ./photos/leeseo-20260321-incheon-fancon \
+  --title "IVE Leeseo — DIVE INTO IVE in Incheon (2026-03-21)" \
+  --open
 ```
 
 可选：在照片目录放一个 `metadata.json` 来定制 hero 与来源说明，只有 `title` 是必需的，
@@ -395,18 +363,8 @@ def natural_key(name):
   "title": "李瑞",
   "latin": "LEESEO",
   "description": "《DIVE into IVE》仁川站第一天的舞台饭拍全记录。",
-  "meta": { "演出": "《DIVE INTO IVE》Day 1", "日期": "2026.03.21", "场馆": "仁川 Inspire Arena" },
   "credit": "Fan-taken photos, personal viewing only"
 }
-```
-
-用法：
-
-```sh
-python3 .opencode/skills/pop/scripts/build_gallery.py \
-  --photos ./photos/leeseo-20260321-incheon-fancon \
-  --title "IVE Leeseo — DIVE INTO IVE in Incheon (2026-03-21)" \
-  --open
 ```
 
 生成的 `index.html` 引用的都是同目录下的相对路径图片，所以**整个文件夹拷到哪里都能看**，也能直接
@@ -502,24 +460,14 @@ python3 -m http.server 8000 --directory ./photos/leeseo-20260321-incheon-fancon
 
 ## 7. 合规与注意事项
 
-完整的红线写在文首的「使用边界」和根目录 `DISCLAIMER.md` 里，这里是清单化版本：
+红线在文首的「使用边界」和根目录 `DISCLAIMER.md` 里——**图片版权属于拍摄者，只供个人查看，
+不二次分发、不商用；只抓公开可达的内容，被拒绝就换源或放弃，不构造绕过方案**。
+这里只补三条最容易踩的操作细节：
 
-- **图片版权属于拍摄者。** 这套流程只适合**个人观看**——不要二次分发、不要用于商业用途。
-  把这句话写进回复和画廊页脚，也是技能里明确要求的。
-- **不要公开托管抓来的照片。** 生成的 `index.html` 只在本机或局域网预览。
-  把它挂到公开域名、公开对象存储、公开图床，就等于二次分发。
-- **只抓公开可达的内容。** 不绕登录、付费墙、DRM、验证码、防爬；请求头不是绕过手段。
-  站点明确拒绝时，**换源或放弃**，不要构造绕过方案（换 IP、模拟验证码等一律不做）。
-- **遵守 ToS 与 `robots.txt`。** 下载前先确认目标站允许；控制并发、不要无限重试，
-  避免给对方造成负担。
-- **优先官方与授权来源。** 官方 SNS / 新闻图 / 已授权粉丝站 > 来源不明的聚合站。
-- **可由权利人要求删除。** 仓库根目录 `DISCLAIMER.md` 里留了处理方式。
-- **注意所在法域。** 「个人使用」的例外范围因国家/地区而异，自行确认。
-- **不要盲猜图片 URL。** 技能原文特别强调：「绝不要把一个猜测或重建出来的 URL 当成真实照片」。
-  只有字节校验过的下载，或构建器真正渲染出来的图，才能算数。
-- **图片站点失效极快。** 今天 404/520 的地址就是死了，**换源**，别硬刚。
-- 如果某个图集页静态 HTML 只含前几张、其余要查看器动态加载：本机没有浏览器自动化时，
-  试一次分页 URL 就行，不行就换源。**别为了凑数量造假数据**。
+- **不要公开托管抓来的照片。** 生成的 `index.html` 只在本机或局域网预览；挂到公开域名、
+  公开对象存储、公开图床，就等于二次分发。
+- **不要盲猜图片 URL。** 只有经过 `file` 字节校验的下载、或构建器真正渲染出来的图才算数。
+- **图集页只给前几张时别硬凑。** 分页 URL 试一次，不行就换源——**不要为了凑数量造假数据**。
 
 ---
 
@@ -541,23 +489,10 @@ python3 -m http.server 8000 --directory ./photos/leeseo-20260321-incheon-fancon
 ## 9. 一页纸速通版
 
 ```sh
-# 1) 装
-curl -fsSL https://opencode.ai/v2/install | bash
-opencode --version            # 要 v2.x
-
-# 2) 装技能
-mkdir -p .opencode/skills/pop/scripts
-cp skill/pop/SKILL.md                  .opencode/skills/pop/SKILL.md
-cp skill/pop/scripts/build_gallery.py  .opencode/skills/pop/scripts/
-# （或者直接跑 install.sh，它会把这些文件放到同样的位置）
-
-# 3) 用
-cd ~/concert-photo-gallery && opencode
-# 在 TUI 里：@pop 帮我找 <偶像> <场次> 的照片并做成本地画廊
-
-# 4) 看
-python3 -m http.server 8000 --directory ./photos/<folder>
-# → http://localhost:8000
+curl -fsSL https://laotree.github.io/opencode-concert-gallery/install.sh | bash   # 装 OpenCode + 技能
+cd ~/concert-photo-gallery && opencode                                            # 开 TUI（/connect 登录）
+# 在 TUI 里说：@pop 帮我找 <偶像> <场次> 的照片并做成本地画廊
+python3 -m http.server 8000 --directory ./photos/<folder>                         # 看 → http://localhost:8000
 ```
 
 就这些。装好一次之后，以后每场演唱会只要一句话、一个新文件夹。
