@@ -1,0 +1,63 @@
+name: Build and deploy site
+
+# main holds sources only: index.html and dist/ are build artifacts, generated
+# here on every push and published to GitHub Pages (dist/ is also what install.sh
+# downloads the skill from). Nothing generated is committed.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.x"
+
+      - name: Render the site and the dist bundle
+        run: |
+          python3 -m pip install --quiet markdown
+          python3 build.py
+
+      - name: Assemble the published tree
+        run: |
+          # tracked sources (install.sh, docs, assets, .nojekyll, ...) …
+          mkdir -p _site
+          git archive HEAD | tar -x -C _site
+          rm -rf _site/.github _site/.gitignore _site/build.py
+          # … plus the freshly generated artifacts
+          cp index.html _site/index.html
+          cp -r dist _site/dist
+          find _site -name '.DS_Store' -delete
+          echo "--- published tree ---"
+          find _site -type f | sort
+
+      - uses: actions/configure-pages@v6
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5

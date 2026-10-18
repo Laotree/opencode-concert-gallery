@@ -1,0 +1,5 @@
+name: "concert_photo_gallery"
+title: "Concert Photo Gallery"
+description: "Find an idol's concert photos from the web and deliver them as downloads or a shareable gallery website."
+category: "Media"
+include_in_prompt: true
