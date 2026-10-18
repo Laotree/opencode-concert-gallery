@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Render blog.md into a self-contained index.html for GitHub Pages, and
-publish the installable skill files into dist/.
+"""Render blog.md into a self-contained index.html for GitHub Pages.
 
     python3 -m pip install markdown
-    python3 build.py                 # writes index.html + dist/
+    python3 build.py                 # writes index.html
     python3 build.py --repo-url URL  # override the GitHub link in the footer
-    python3 build.py --no-dist       # skip the dist/ sync
 """
 import argparse
 import html
@@ -21,7 +19,6 @@ except ImportError:
 HERE = os.path.dirname(os.path.abspath(__file__))
 SOURCE = os.path.join(HERE, "blog.md")
 OUTPUT = os.path.join(HERE, "index.html")
-DIST = os.path.join(HERE, "dist", "pop")
 
 DEFAULT_REPO = "https://github.com/Laotree/opencode-concert-gallery"
 
@@ -136,56 +133,16 @@ def polish(html_text):
     return html_text
 
 
-def extract_skill(text):
-    """Pull the two installable artefacts out of blog.md.
-
-    blog.md is the single source of truth: the ````markdown block holds the
-    full SKILL.md (frontmatter included) and the ```python block holds
-    build_gallery.py. install.sh fetches them from dist/.
-    """
-    skill_m = re.search(r"^````markdown\n(.*?)\n````\s*$", text, re.S | re.M)
-    script_m = re.search(r"^```python\n(.*?)\n```\s*$", text, re.S | re.M)
-    if not skill_m or not script_m:
-        sys.exit("blog.md: could not find the ``````markdown / ```python blocks")
-    skill, script = skill_m.group(1) + "\n", script_m.group(1) + "\n"
-
-    head = skill.split("---", 2)
-    if not skill.startswith("---\n") or len(head) < 3 or "description:" not in head[1]:
-        sys.exit("blog.md: SKILL.md block is missing frontmatter (name/description)")
-    if not script.startswith("#!/usr/bin/env python3"):
-        sys.exit("blog.md: the python block does not look like build_gallery.py")
-    return skill, script
-
-
-def sync_dist(text):
-    """Write dist/pop/{SKILL.md,scripts/build_gallery.py}."""
-    skill, script = extract_skill(text)
-    files = {
-        os.path.join(DIST, "SKILL.md"): (skill, 0o644),
-        os.path.join(DIST, "scripts", "build_gallery.py"): (script, 0o755),
-    }
-    for path, (content, mode) in files.items():
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as fh:
-            fh.write(content)
-        os.chmod(path, mode)
-    rel = os.path.relpath(DIST, HERE)
-    print("synced %s/ (%d + %d bytes)" % (rel, len(skill), len(script)))
-
-
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--repo-url", default=DEFAULT_REPO)
     ap.add_argument("--out", default=OUTPUT)
-    ap.add_argument("--no-dist", action="store_true", help="skip the dist/ sync")
     args = ap.parse_args()
 
     source = read_source()
     title, body = split_title(source)
     rendered, toc = render(body)
-    if not args.no_dist:
-        sync_dist(source)
 
     description = (
         "用 OpenCode V2 的 Skill 在本机搭建演唱会照片画廊：安装、加载技能、"

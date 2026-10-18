@@ -1,8 +1,8 @@
 name: Build and deploy site
 
-# main holds sources only: index.html and dist/ are build artifacts, generated
-# here on every push and published to GitHub Pages (dist/ is also what install.sh
-# downloads the skill from). Nothing generated is committed.
+# main holds sources only: index.html is a build artifact, generated here on
+# every push and published to GitHub Pages together with skill/ (which is also
+# what install.sh downloads the skill from).
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
         with:
           python-version: "3.x"
 
-      - name: Render the site and the dist bundle
+      - name: Render the site
         run: |
           python3 -m pip install --quiet markdown
           python3 build.py
@@ -39,9 +39,8 @@ jobs:
           mkdir -p _site
           git archive HEAD | tar -x -C _site
           rm -rf _site/.github _site/.gitignore _site/build.py
-          # … plus the freshly generated artifacts
+          # … plus the freshly generated index.html
           cp index.html _site/index.html
-          cp -r dist _site/dist
           find _site -name '.DS_Store' -delete
           echo "--- published tree ---"
           find _site -type f | sort

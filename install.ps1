@@ -19,7 +19,7 @@ $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
 $Repo = 'Laotree/opencode-concert-gallery'
-$Dist = 'dist/pop'
+$Dist = 'skill/pop'
 $Dest = Join-Path (Join-Path $Dir $SkillsDir) $Id
 
 function Say  ($m) { Write-Host $m }

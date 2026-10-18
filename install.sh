@@ -9,9 +9,9 @@
 set -euo pipefail
 
 REPO="Laotree/opencode-concert-gallery"
-# dist/pop/ is built by CI and published to Pages (it is not in the repo).
+# the skill lives in the repo at skill/pop/ and is published to Pages by CI
 BASE="${SKILL_BASE:-https://laotree.github.io/opencode-concert-gallery}"
-DIST="dist/pop"
+DIST="skill/pop"
 DIR="${HOME}/concert-photo-gallery"
 SKILLS_DIR=".opencode/skills"
 ID="pop"
@@ -42,7 +42,7 @@ Options:
   --id NAME          skill folder name = the @id you type (default: pop)
   --base URL         raw base URL to download from (default: the published repo)
   --no-opencode      do not install OpenCode, only fetch the skill
-  --local PATH       copy the skill from a local checkout instead of the network
+  --local PATH       copy the skill from a local checkout (e.g. skill/pop) instead of the network
   -h, --help         this help
 
   curl -fsSL ${C}https://laotree.github.io/opencode-concert-gallery/install.sh${R} | bash

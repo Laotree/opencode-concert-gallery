@@ -25,11 +25,11 @@ irm https://laotree.github.io/opencode-concert-gallery/install.ps1 | iex
 | `--skills-dir DIR` | 技能根目录（默认 `.opencode/skills`） |
 | `--id NAME` | 技能目录名 / ID（默认 `pop`，即 `@pop`） |
 | `--no-opencode` | 只装技能，不动 OpenCode |
-| `--local PATH` | 从本地 `dist/` 拷贝，不走网络 |
+| `--local PATH` | 从本地拷贝（如 `--local skill/pop`），不走网络 |
 | `-h, --help` | 帮助 |
 
-> `dist/pop/` **不入库**：由 CI（`.github/workflows/pages.yml`）用 `build.py` 从 `blog.md`
-> 的代码块抽取、随站点一起发布，`install.sh` 再从站点下载它。`.opencode/` 同样不进版本库。
+> 技能本体就在仓库里：[`skill/pop/`](https://github.com/Laotree/opencode-concert-gallery/tree/main/skill/pop)
+> —— `SKILL.md` + `scripts/build_gallery.py`，随源码一起发布到站点，`install.sh` 从那里下载。
 > 目录名即技能 ID，装好就是 `@pop`。
 
 ## 内容
@@ -37,24 +37,24 @@ irm https://laotree.github.io/opencode-concert-gallery/install.ps1 | iex
 | 文件 | 说明 |
 | --- | --- |
 | `blog.md` | 教程正文（唯一内容源） |
-| `build.py` | 把 `blog.md` 渲染成 `index.html`，并抽取 `dist/pop/` |
-| `.github/workflows/pages.yml` | CI：构建并发布站点（构建产物不入库） |
+| `skill/pop/` | **技能本体**：`SKILL.md` + `scripts/build_gallery.py`（`install.sh` 的下载源） |
+| `build.py` | 把 `blog.md` 渲染成 `index.html` |
+| `.github/workflows/pages.yml` | CI：构建站点并发布（含 `skill/`） |
 | `install.sh` / `install.ps1` | 一键安装脚本（macOS/Linux/WSL · Windows） |
-| `SKILL.md` | `concert_photo_gallery` 技能本体 |
+| `SKILL.md` | 技能原文（沙箱版，留作对照；实际加载的是 `skill/pop/SKILL.md`） |
 | `skill.yaml` | 技能元数据（OpenCode 不读取，由原发布方使用） |
 | `DISCLAIMER.md` | 使用边界与版权说明 |
 | `LICENSE` | MIT 许可（覆盖文字与代码，不含照片） |
 | `index.html` | 站点首页 —— **构建产物，不入库** |
-| `dist/pop/` | 可安装的技能文件 —— **构建产物，不入库**，`install.sh` 的下载源 |
 
 ## 构建与发布
 
-`main` 分支只有**源码**。构建产物 `index.html` 和 `dist/pop/` 都在 `.gitignore` 里，
-由 GitHub Actions 在每次 push 时生成并发布到 Pages：
+`main` 分支只有**源码**：`index.html` 在 `.gitignore` 里，由 GitHub Actions 在每次 push 时用
+`build.py` 生成，连同 `skill/` 一起发布到 Pages：
 
 ```
-blog.md ──► build.py ──► index.html      ┐
-                     └─► dist/pop/       ┴─► Actions ──► GitHub Pages
+blog.md ──► build.py ──► index.html    ┐
+skill/pop/  （技能源码，原样发布）        ┴─► Actions ──► GitHub Pages
 ```
 
 本地想做同样的构建：
