@@ -398,9 +398,7 @@ __ITEMS__
   var wall = document.getElementById('wall');
   var cols = 4, mode = 'masonry';
   function applyCols() {
-    var w = window.innerWidth;
-    var cap = w < 560 ? 2 : w < 900 ? 3 : 5;
-    wall.style.setProperty('--cols', Math.min(cols, cap));
+    wall.style.setProperty('--cols', cols);
   }
   function segHandler(sel, attr, onPick) {
     var btns = Array.prototype.slice.call(document.querySelectorAll(sel + ' button'));
@@ -419,7 +417,6 @@ __ITEMS__
     cols = parseInt(v, 10); applyCols();
   });
   applyCols();
-  window.addEventListener('resize', applyCols);
 
   /* ---------- theme ---------- */
   var root = document.documentElement;
